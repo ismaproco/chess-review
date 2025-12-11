@@ -14,6 +14,7 @@ import { EngineLines } from "./EngineLines";
 import { GameInfo } from "./GameInfo";
 import { useChessGame } from "../../hooks/useChessGame";
 import { useStockfish } from "../../hooks/useStockfish";
+import { useGameAnalysis } from "../../hooks/useGameAnalysis";
 
 const EXAMPLE_PGN = `[Event "Live Chess"]
 [Site "Chess.com"]
@@ -60,7 +61,7 @@ export function GameReview(): React.ReactElement {
 
   const {
     isReady: engineReady,
-    isAnalyzing,
+    isAnalyzing: isLiveAnalyzing,
     evaluation: rawEvaluation,
     mate: rawMate,
     depth: engineDepth,
@@ -69,17 +70,45 @@ export function GameReview(): React.ReactElement {
     stop,
   } = useStockfish();
 
+  const {
+    analyzedMoves,
+    progress: analysisProgress,
+    analyzeGame,
+    stopAnalysis,
+  } = useGameAnalysis();
+
+  // Use analyzed moves if available, otherwise use raw moves
+  const displayMoves = analyzedMoves.length > 0 ? analyzedMoves : moves;
+
+  // Get evaluation for current position from analyzed moves or live analysis
+  const currentMoveEval = useMemo(() => {
+    if (currentMoveIndex >= 0 && currentMoveIndex < analyzedMoves.length) {
+      return analyzedMoves[currentMoveIndex]?.evaluation;
+    }
+    return null;
+  }, [analyzedMoves, currentMoveIndex]);
+
   // Convert evaluation from side-to-move perspective to white's perspective
   // Stockfish returns positive = good for side to move
   // Our UI expects positive = good for white
   const evaluation = useMemo(() => {
+    // Use cached evaluation from analysis if available
+    if (currentMoveEval) {
+      return currentMoveEval.score;
+    }
+    // Fall back to live analysis
     return turn === "w" ? rawEvaluation : -rawEvaluation;
-  }, [rawEvaluation, turn]);
+  }, [currentMoveEval, rawEvaluation, turn]);
 
   const mate = useMemo(() => {
+    // Use cached evaluation from analysis if available
+    if (currentMoveEval) {
+      return currentMoveEval.mate;
+    }
+    // Fall back to live analysis
     if (rawMate === null) return null;
     return turn === "w" ? rawMate : -rawMate;
-  }, [rawMate, turn]);
+  }, [currentMoveEval, rawMate, turn]);
 
   // Also convert engine lines to white's perspective
   const engineLines = useMemo(() => {
@@ -95,7 +124,14 @@ export function GameReview(): React.ReactElement {
     }));
   }, [rawEngineLines, turn]);
 
-  // Trigger analysis when position changes
+  // Start full game analysis when game is loaded
+  useEffect(() => {
+    if (isLoaded && moves.length > 0) {
+      analyzeGame(moves);
+    }
+  }, [isLoaded, moves, analyzeGame]);
+
+  // Trigger live analysis when position changes (for current position lines)
   useEffect(() => {
     if (isLoaded && engineReady && fen) {
       analyze(fen, { depth: 20, multiPv: 3 });
@@ -106,12 +142,19 @@ export function GameReview(): React.ReactElement {
   useEffect(() => {
     return () => {
       stop();
+      stopAnalysis();
     };
-  }, [stop]);
+  }, [stop, stopAnalysis]);
 
   const handleLoadGame = useCallback(() => {
+    stopAnalysis(); // Stop any ongoing analysis
     loadPgn(pgnInput);
-  }, [loadPgn, pgnInput]);
+  }, [loadPgn, pgnInput, stopAnalysis]);
+
+  const handleReset = useCallback(() => {
+    stopAnalysis();
+    reset();
+  }, [reset, stopAnalysis]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -221,7 +264,7 @@ export function GameReview(): React.ReactElement {
                 </div>
 
                 <button
-                  onClick={reset}
+                  onClick={handleReset}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-stone-400 hover:text-white hover:bg-stone-700 rounded-lg transition-colors"
                 >
                   <ArrowPathIcon className="w-4 h-4" />
@@ -232,7 +275,7 @@ export function GameReview(): React.ReactElement {
               {/* Engine Lines */}
               <EngineLines 
                 lines={engineLines} 
-                isAnalyzing={isAnalyzing} 
+                isAnalyzing={isLiveAnalyzing} 
                 engineReady={engineReady}
                 depth={engineDepth}
               />
@@ -240,22 +283,44 @@ export function GameReview(): React.ReactElement {
               {/* Move List */}
               <div className="flex-1 bg-stone-800/50 rounded-lg border border-stone-700 min-h-[200px] max-h-[300px]">
                 <MoveList
-                  moves={moves}
+                  moves={displayMoves}
                   currentMoveIndex={currentMoveIndex}
                   onMoveClick={goToMove}
                 />
               </div>
 
-              {/* Move Counter */}
+              {/* Analysis Progress / Move Counter */}
               <div className="bg-stone-800/30 rounded-lg p-3 border border-stone-700/50">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-stone-400">
-                    Move {currentMoveIndex + 1} of {moves.length}
-                  </span>
-                  <span className="text-stone-500 text-xs">
-                    Use arrow keys to navigate
-                  </span>
-                </div>
+                {analysisProgress.isAnalyzing ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-amber-400">
+                        Analyzing move {analysisProgress.currentMove} of {analysisProgress.totalMoves}...
+                      </span>
+                      <span className="text-stone-500 text-xs">
+                        {Math.round((analysisProgress.currentMove / analysisProgress.totalMoves) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-stone-700 rounded-full h-1.5">
+                      <div 
+                        className="bg-amber-500 h-1.5 rounded-full transition-all duration-300"
+                        style={{ width: `${(analysisProgress.currentMove / analysisProgress.totalMoves) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-stone-400">
+                      Move {currentMoveIndex + 1} of {moves.length}
+                      {analysisProgress.isComplete && (
+                        <span className="ml-2 text-green-500 text-xs">✓ Analysis complete</span>
+                      )}
+                    </span>
+                    <span className="text-stone-500 text-xs">
+                      Use arrow keys to navigate
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Game Info for smaller screens */}

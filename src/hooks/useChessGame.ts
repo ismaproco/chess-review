@@ -148,24 +148,13 @@ export function useChessGame(): UseChessGameReturn {
       }
 
       const history = chess.history({ verbose: true });
-      const parsedMoves: MoveWithEval[] = history.map((move, idx) => {
-        // Assign mock classifications for demo
-        let classification: MoveWithEval["classification"];
-        const rand = Math.random();
-        if (rand < 0.05) classification = "blunder";
-        else if (rand < 0.1) classification = "mistake";
-        else if (rand < 0.2) classification = "inaccuracy";
-        else if (rand < 0.3) classification = "good";
-        else if (rand < 0.4) classification = "excellent";
-        else if (rand < 0.45) classification = "great";
-        else if (rand < 0.47) classification = "brilliant";
-        else classification = "best";
-
+      const parsedMoves: MoveWithEval[] = history.map((move) => {
+        // Classifications will be set by the game analysis hook
         return {
           move,
           san: move.san,
-          fen: "", // Not needed for now
-          classification,
+          fen: "", // Will be set during analysis
+          // No classification yet - will be computed by useGameAnalysis
         };
       });
 
