@@ -6,6 +6,36 @@ interface MoveListProps {
   onMoveClick: (index: number) => void;
 }
 
+// Piece icons for display
+const PIECE_ICONS: Record<string, string> = {
+  K: "♔",
+  Q: "♕",
+  R: "♖",
+  B: "♗",
+  N: "♘",
+};
+
+/**
+ * Convert SAN notation to display format with piece icons
+ * e.g., "Nf3" -> "♘f3", "Qxd4" -> "♕xd4", "e4" -> "e4"
+ */
+function formatMoveWithIcon(san: string): string {
+  if (san.length === 0) return san;
+  
+  // Check if the first character is a piece letter
+  const firstChar = san[0];
+  if (PIECE_ICONS[firstChar]) {
+    return PIECE_ICONS[firstChar] + san.slice(1);
+  }
+  
+  // Handle castling
+  if (san === "O-O" || san === "O-O-O") {
+    return san;
+  }
+  
+  return san;
+}
+
 const CLASSIFICATION_COLORS: Record<MoveClassification, string> = {
   brilliant: "text-cyan-400 bg-cyan-950",
   great: "text-blue-400 bg-blue-950",
@@ -129,11 +159,12 @@ function MoveButton({
     ? CLASSIFICATION_COLORS[classification]
     : "";
   const symbol = classification ? CLASSIFICATION_SYMBOLS[classification] : "";
+  const displayMove = formatMoveWithIcon(san);
 
   return (
     <button
       className={`
-        flex-1 px-2 py-1 rounded text-sm font-mono text-left
+        flex-1 px-2 py-1 rounded text-sm text-left
         transition-colors duration-150
         ${isActive
           ? "bg-amber-600 text-white font-semibold"
@@ -142,7 +173,7 @@ function MoveButton({
       `}
       onClick={onClick}
     >
-      {san}
+      {displayMove}
       {symbol && <span className="ml-1 text-xs">{symbol}</span>}
     </button>
   );
