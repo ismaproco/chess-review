@@ -278,6 +278,7 @@ export function GameReview(): React.ReactElement {
                 isAnalyzing={isLiveAnalyzing} 
                 engineReady={engineReady}
                 depth={engineDepth}
+                fen={fen}
               />
 
               {/* Move List */}
