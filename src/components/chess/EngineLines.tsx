@@ -24,14 +24,20 @@ const PIECE_ICONS: Record<string, string> = {
   N: "♘",
 };
 
+interface ParsedMove {
+  icon: string | null;
+  rest: string;
+  full: string;
+}
+
 /**
  * Convert UCI move notation to readable format with piece icons
  * e.g., "e2e4" -> "e4", "g1f3" -> "♘f3", "e1g1" -> "O-O"
  */
-function uciToReadable(uciMoves: string[], fen: string): string[] {
+function uciToReadable(uciMoves: string[], fen: string): ParsedMove[] {
   try {
     const chess = new Chess(fen);
-    const readableMoves: string[] = [];
+    const readableMoves: ParsedMove[] = [];
     
     for (const uci of uciMoves) {
       try {
@@ -43,28 +49,35 @@ function uciToReadable(uciMoves: string[], fen: string): string[] {
         // Make the move and get SAN
         const move = chess.move({ from, to, promotion });
         if (move) {
-          // Add piece icon for non-pawn moves
-          let displayMove = move.san;
           const pieceChar = move.san[0];
           if (PIECE_ICONS[pieceChar]) {
-            displayMove = PIECE_ICONS[pieceChar] + move.san.slice(1);
+            readableMoves.push({
+              icon: PIECE_ICONS[pieceChar],
+              rest: move.san.slice(1),
+              full: move.san,
+            });
+          } else {
+            readableMoves.push({
+              icon: null,
+              rest: move.san,
+              full: move.san,
+            });
           }
-          readableMoves.push(displayMove);
         } else {
           // Fallback to UCI if move fails
-          readableMoves.push(uci);
+          readableMoves.push({ icon: null, rest: uci, full: uci });
         }
       } catch {
         // If move fails, use UCI notation
-        readableMoves.push(uci);
+        readableMoves.push({ icon: null, rest: uci, full: uci });
         break; // Can't continue without valid position
       }
     }
     
     return readableMoves;
   } catch {
-    // If FEN is invalid, return original moves
-    return uciMoves;
+    // If FEN is invalid, return original moves as-is
+    return uciMoves.map(m => ({ icon: null, rest: m, full: m }));
   }
 }
 
@@ -146,13 +159,15 @@ function EngineLineRow({ line, rank, fen }: EngineLineRowProps): React.ReactElem
   const isPositive = evaluation.mate !== null ? evaluation.mate > 0 : evaluation.score >= 0;
 
   // Convert UCI moves to readable SAN with piece icons
-  const readableMoves = useMemo(() => {
-    if (!fen || moves.length === 0) return moves;
+  const parsedMoves = useMemo(() => {
+    if (!fen || moves.length === 0) {
+      return moves.map(m => ({ icon: null, rest: m, full: m }));
+    }
     return uciToReadable(moves, fen);
   }, [moves, fen]);
 
   return (
-    <div className="flex items-start gap-2 group">
+    <div className="flex items-center gap-2 group">
       {/* Rank indicator */}
       <div className="w-5 h-5 rounded bg-stone-700 flex items-center justify-center shrink-0">
         <span className="text-xs text-stone-400">{rank}</span>
@@ -174,15 +189,20 @@ function EngineLineRow({ line, rank, fen }: EngineLineRowProps): React.ReactElem
       </div>
 
       {/* Move sequence with piece icons */}
-      <div className="flex-1 text-sm text-stone-300 truncate group-hover:whitespace-normal group-hover:break-words">
-        {readableMoves.slice(0, 8).map((move, idx) => (
-          <span key={idx} className={idx % 2 === 0 ? "text-stone-200" : "text-stone-400"}>
-            {move}
-            {idx < Math.min(readableMoves.length, 8) - 1 && " "}
+      <div className="flex-1 flex flex-wrap items-center gap-x-1 text-sm truncate group-hover:whitespace-normal group-hover:flex-wrap">
+        {parsedMoves.slice(0, 8).map((move, idx) => (
+          <span 
+            key={idx} 
+            className={`inline-flex items-center ${idx % 2 === 0 ? "text-stone-200" : "text-stone-400"}`}
+          >
+            {move.icon && (
+              <span className="text-base leading-none">{move.icon}</span>
+            )}
+            <span>{move.rest}</span>
           </span>
         ))}
-        {readableMoves.length > 8 && (
-          <span className="text-stone-500"> ...</span>
+        {parsedMoves.length > 8 && (
+          <span className="text-stone-500">...</span>
         )}
       </div>
     </div>

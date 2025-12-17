@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { ChessBoard } from "./ChessBoard";
 import { EvaluationBar } from "./EvaluationBar";
+import { EvaluationHistogram } from "./EvaluationHistogram";
 import { MoveList } from "./MoveList";
 import { EngineLines } from "./EngineLines";
 import { GameInfo } from "./GameInfo";
@@ -289,6 +290,13 @@ export function GameReview(): React.ReactElement {
                   onMoveClick={goToMove}
                 />
               </div>
+
+              {/* Evaluation Histogram */}
+              <EvaluationHistogram
+                moves={displayMoves}
+                currentMoveIndex={currentMoveIndex}
+                onMoveClick={goToMove}
+              />
 
               {/* Analysis Progress / Move Counter */}
               <div className="bg-stone-800/30 rounded-lg p-3 border border-stone-700/50">

@@ -16,24 +16,17 @@ const PIECE_ICONS: Record<string, string> = {
 };
 
 /**
- * Convert SAN notation to display format with piece icons
- * e.g., "Nf3" -> "♘f3", "Qxd4" -> "♕xd4", "e4" -> "e4"
+ * Check if move starts with a piece letter and return the icon and rest
  */
-function formatMoveWithIcon(san: string): string {
-  if (san.length === 0) return san;
+function parseMoveWithIcon(san: string): { icon: string | null; rest: string } {
+  if (san.length === 0) return { icon: null, rest: san };
   
-  // Check if the first character is a piece letter
   const firstChar = san[0];
   if (PIECE_ICONS[firstChar]) {
-    return PIECE_ICONS[firstChar] + san.slice(1);
+    return { icon: PIECE_ICONS[firstChar], rest: san.slice(1) };
   }
   
-  // Handle castling
-  if (san === "O-O" || san === "O-O-O") {
-    return san;
-  }
-  
-  return san;
+  return { icon: null, rest: san };
 }
 
 const CLASSIFICATION_COLORS: Record<MoveClassification, string> = {
@@ -159,12 +152,12 @@ function MoveButton({
     ? CLASSIFICATION_COLORS[classification]
     : "";
   const symbol = classification ? CLASSIFICATION_SYMBOLS[classification] : "";
-  const displayMove = formatMoveWithIcon(san);
+  const { icon, rest } = parseMoveWithIcon(san);
 
   return (
     <button
       className={`
-        flex-1 px-2 py-1 rounded text-sm text-left
+        flex-1 px-2 py-1.5 rounded text-sm text-left flex items-center gap-0.5
         transition-colors duration-150
         ${isActive
           ? "bg-amber-600 text-white font-semibold"
@@ -173,8 +166,11 @@ function MoveButton({
       `}
       onClick={onClick}
     >
-      {displayMove}
-      {symbol && <span className="ml-1 text-xs">{symbol}</span>}
+      {icon && (
+        <span className="text-lg leading-none -my-0.5">{icon}</span>
+      )}
+      <span>{rest}</span>
+      {symbol && <span className="ml-1 text-xs opacity-80">{symbol}</span>}
     </button>
   );
 }
