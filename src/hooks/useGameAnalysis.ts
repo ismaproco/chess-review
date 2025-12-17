@@ -40,8 +40,10 @@ function classifyMove(
   }
   
   if (evalAfter.mate !== null && evalBefore.mate === null) {
-    // Found a mate that wasn't there before
-    if (evalAfter.mate > 0) {
+    // evalAfter is from opponent's perspective after our move
+    // evalAfter.mate < 0 means opponent is getting mated = we found a brilliant checkmate
+    // evalAfter.mate > 0 means opponent can mate us = we blundered
+    if (evalAfter.mate < 0) {
       return "brilliant";
     }
     // Allowed opponent to have mate
@@ -50,12 +52,14 @@ function classifyMove(
   
   if (evalBefore.mate !== null && evalAfter.mate !== null) {
     // Both positions have mate
-    if (evalBefore.mate > 0 && evalAfter.mate < 0) {
-      // Had mate for us, now opponent has mate
+    // evalBefore.mate > 0 = we could deliver mate, evalAfter.mate > 0 = opponent can now mate us
+    if (evalBefore.mate > 0 && evalAfter.mate > 0) {
+      // Had mate for us, now opponent has mate = blunder
       return "blunder";
     }
-    if (evalBefore.mate < 0 && evalAfter.mate > 0) {
-      // Opponent had mate, now we have mate (shouldn't happen normally)
+    // evalBefore.mate < 0 = we were getting mated, evalAfter.mate < 0 = opponent is now getting mated
+    if (evalBefore.mate < 0 && evalAfter.mate < 0) {
+      // We were getting mated, now opponent is getting mated = brilliant escape/counterattack
       return "brilliant";
     }
   }
