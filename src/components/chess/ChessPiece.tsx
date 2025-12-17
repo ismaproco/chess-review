@@ -44,11 +44,9 @@ const PIECE_PATHS: Record<PieceSymbol, React.ReactElement> = {
   b: (
     // Bishop
     <g>
-      <g fill="none" strokeLinecap="butt" strokeLinejoin="round">
-        <path d="M9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.35.49-2.32.47-3-.5 1.35-1.46 3-2 3-2z" />
-        <path d="M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z" />
-        <path d="M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z" />
-      </g>
+      <path d="M9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.35.49-2.32.47-3-.5 1.35-1.46 3-2 3-2z" strokeLinecap="butt" strokeLinejoin="round" />
+      <path d="M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z" strokeLinecap="butt" strokeLinejoin="round" />
+      <path d="M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z" strokeLinecap="butt" strokeLinejoin="round" />
       <path d="M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5" fill="none" strokeLinejoin="miter" />
     </g>
   ),
@@ -71,17 +69,26 @@ export function ChessPiece({ type, color, className = "" }: ChessPieceProps): Re
   const isWhite = color === "w";
   
   if (isWhite) {
-    // White pieces: white fill with dark outline
+    // White pieces: white to light gray gradient with distinct dark outline
     return (
-      <svg viewBox="0 0 45 45" className={className}>
+      <svg 
+        viewBox="0 0 45 45" 
+        className={`chess-piece ${className}`}
+        style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
+      >
+        <defs>
+          <linearGradient id="whitePieceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+            <stop offset="100%" stopColor="#e8e8e8" stopOpacity="1" />
+          </linearGradient>
+        </defs>
+        {/* Main white piece with gradient fill */}
         <g
-          style={{
-            fill: "#ffffff",
-            stroke: "#000000",
-            strokeWidth: 1.5,
-            strokeLinecap: "round",
-            strokeLinejoin: "round",
-          }}
+          fill="url(#whitePieceGradient)"
+          stroke="#000000"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {PIECE_PATHS[type]}
         </g>
@@ -89,30 +96,20 @@ export function ChessPiece({ type, color, className = "" }: ChessPieceProps): Re
     );
   }
   
-  // Black pieces: solid black fill with thin light outline for visibility on dark squares
+  // Black pieces: solid black fill with crisp white outline
   return (
-    <svg viewBox="0 0 45 45" className={className}>
-      {/* Outer glow for visibility on dark squares */}
+    <svg 
+      viewBox="0 0 45 45" 
+      className={`chess-piece ${className}`}
+      style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}
+    >
+      {/* Main black piece with solid black fill and white outline */}
       <g
-        style={{
-          fill: "none",
-          stroke: "rgba(255,255,255,0.4)",
-          strokeWidth: 2.5,
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-        }}
-      >
-        {PIECE_PATHS[type]}
-      </g>
-      {/* Main black piece */}
-      <g
-        style={{
-          fill: "#000000",
-          stroke: "#000000",
-          strokeWidth: 1.5,
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-        }}
+        fill="#000000"
+        stroke="#ffffff"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
         {PIECE_PATHS[type]}
       </g>
